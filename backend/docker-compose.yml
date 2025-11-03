@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "sparkdb"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      # Spring datasource (overrides application.properties)
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://db:5432/sparkdb"
+      SPRING_DATASOURCE_USERNAME: "postgres"
+      SPRING_DATASOURCE_PASSWORD: "postgres"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+
+      # JWT config (use a secure secret in production)
+      JWT_SECRET: "ZmFrZV9zZWNyZXRfZm9yX3NwYXJrX2Rldg=="
+      JWT_EXPIRATION: "86400000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -38,12 +38,25 @@ public class JwtUtils {
     }
 
     private Claims extractAllClaims(String token) {
+    // Use parser() here for broader jjwt compatibility across versions
+    // Try to use a Key object if supported, otherwise fall back to raw bytes
+    try {
         return Jwts
-                .parserBuilder()
-                .setSigningKey(getSignKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+            .parser()
+            .setSigningKey(getSignKey())
+            .build()
+            .parseClaimsJws(token)
+            .getBody();
+    } catch (NoSuchMethodError e) {
+        // Some jjwt versions expose parser() returning a builder without parseClaimsJws
+        byte[] keyBytes = Decoders.BASE64.decode(secret);
+        return Jwts
+            .parser()
+            .setSigningKey(keyBytes)
+            .build()
+            .parseClaimsJws(token)
+            .getBody();
+    }
     }
 
     private Boolean isTokenExpired(String token) {
