@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
 import { MessageCircle, ThumbsUp, Star, TrendingUp } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { cardHover } from "@/lib/animations";
 
 interface DoubtCardProps {
-  id: number;
+  id: number | string;
   title: string;
   description: string;
   author: string;
@@ -16,6 +17,7 @@ interface DoubtCardProps {
 }
 
 export const DoubtCard = ({
+  id,
   title,
   description,
   author,
@@ -25,12 +27,18 @@ export const DoubtCard = ({
   isHot = false,
   index,
 }: DoubtCardProps) => {
+  const navigate = useNavigate();
   const [isUpvoted, setIsUpvoted] = useState(false);
   const [localUpvotes, setLocalUpvotes] = useState(upvotes);
 
-  const handleUpvote = () => {
+  const handleUpvote = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setIsUpvoted(!isUpvoted);
     setLocalUpvotes(isUpvoted ? localUpvotes - 1 : localUpvotes + 1);
+  };
+
+  const handleCardClick = () => {
+    navigate(`/question/${id}`);
   };
 
   return (
@@ -38,6 +46,7 @@ export const DoubtCard = ({
       variants={cardHover}
       initial="rest"
       whileHover="hover"
+      onClick={handleCardClick}
       className="relative bg-card border border-border rounded-2xl p-6 cursor-pointer group overflow-hidden"
       style={{
         boxShadow: isUpvoted ? "var(--glow-primary)" : "none",
@@ -109,6 +118,7 @@ export const DoubtCard = ({
 
         <motion.button
           className="ml-auto"
+          onClick={(e) => e.stopPropagation()}
           whileHover={{ scale: 1.2, rotate: 180 }}
           transition={{ type: "spring", stiffness: 300 }}
         >

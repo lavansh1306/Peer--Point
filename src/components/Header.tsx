@@ -1,8 +1,36 @@
 import { motion } from "framer-motion";
-import { Search, Bell, User } from "lucide-react";
+import { Search, Bell, User, LogOut, LogIn } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import logo from "@/assets/peerpoint-logo.jpg";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export const Header = () => {
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <motion.header
       className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border"
@@ -45,26 +73,65 @@ export const Header = () => {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <motion.button
-            className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors relative"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Bell className="w-5 h-5 text-foreground" />
-            <motion.div
-              className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full border-2 border-background"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          </motion.button>
+          {isAuthenticated && (
+            <motion.button
+              className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors relative"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Bell className="w-5 h-5 text-foreground" />
+              <motion.div
+                className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full border-2 border-background"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            </motion.button>
+          )}
 
-          <motion.button
-            className="p-2 rounded-lg bg-gradient-cyber hover:shadow-glow-primary transition-all"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <User className="w-5 h-5 text-primary-foreground" />
-          </motion.button>
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <motion.button
+                  className="flex items-center gap-2 p-2 rounded-lg bg-gradient-cyber hover:shadow-glow-primary transition-all"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Avatar className="w-8 h-8">
+                    <AvatarFallback className="bg-primary/20 text-primary text-sm font-bold">
+                      {user?.name ? getInitials(user.name) : "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </motion.button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user?.name}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/")}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <motion.button
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-cyber hover:shadow-glow-primary transition-all"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate("/login")}
+            >
+              <LogIn className="w-4 h-4" />
+              <span className="text-sm font-semibold">Login</span>
+            </motion.button>
+          )}
         </div>
       </div>
     </motion.header>

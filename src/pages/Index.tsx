@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { Header } from "@/components/Header";
@@ -7,81 +9,102 @@ import { CommunitySidebar } from "@/components/CommunitySidebar";
 import { DoubtCard } from "@/components/DoubtCard";
 import { PostButton } from "@/components/PostButton";
 import { staggerContainer, fadeInUp } from "@/lib/animations";
-
-const mockDoubts = [
-  {
-    id: 1,
-    title: "How to implement Binary Search Tree in C++?",
-    description:
-      "I'm struggling with the deletion operation in BST. Can someone explain the three cases involved?",
-    author: "Rahul K.",
-    community: "CSE",
-    upvotes: 24,
-    replies: 8,
-    isHot: true,
-  },
-  {
-    id: 2,
-    title: "Confusion in Fourier Transform concepts",
-    description:
-      "What's the difference between continuous and discrete Fourier transforms? Need practical examples.",
-    author: "Priya S.",
-    community: "ECE",
-    upvotes: 18,
-    replies: 5,
-  },
-  {
-    id: 3,
-    title: "Best approach for solving integration by parts?",
-    description:
-      "I always mess up choosing u and dv. Is there a trick to remember which one to choose?",
-    author: "Aditya M.",
-    community: "Math",
-    upvotes: 31,
-    replies: 12,
-    isHot: true,
-  },
-  {
-    id: 4,
-    title: "Neural Network backpropagation explained?",
-    description:
-      "Can someone break down the chain rule application in backpropagation? Visual diagrams would help!",
-    author: "Sneha R.",
-    community: "AI/ML",
-    upvotes: 42,
-    replies: 15,
-    isHot: true,
-  },
-  {
-    id: 5,
-    title: "Understanding Kirchhoff's Current Law",
-    description:
-      "Working on circuit analysis assignment. Getting wrong answers when applying KCL to complex circuits.",
-    author: "Vijay P.",
-    community: "ECE",
-    upvotes: 15,
-    replies: 6,
-  },
-  {
-    id: 6,
-    title: "Python list comprehension vs loops - which is faster?",
-    description:
-      "Doing a project and need to optimize code. Should I use list comprehension or traditional for loops?",
-    author: "Meera J.",
-    community: "CSE",
-    upvotes: 22,
-    replies: 9,
-  },
-];
+import { pagesApi, questionsApi, type Question, type Page } from "@/lib/api";
+import { toast } from "sonner";
 
 const Index = () => {
+  const location = useLocation();
   const [showSplash, setShowSplash] = useState(true);
   const [selectedCommunity, setSelectedCommunity] = useState("All");
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [pages, setPages] = useState<Page[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredDoubts =
-    selectedCommunity === "All"
-      ? mockDoubts
-      : mockDoubts.filter((doubt) => doubt.community === selectedCommunity);
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
+
+  useEffect(() => {
+    if (selectedCommunity !== "All") {
+      fetchQuestionsByPage(selectedCommunity);
+    } else {
+      fetchAllQuestions();
+    }
+  }, [selectedCommunity]);
+
+  // Refresh when a question is updated (e.g., reply added)
+  useEffect(() => {
+    const handleQuestionUpdated = () => {
+      if (selectedCommunity === "All") {
+        fetchAllQuestions();
+      } else {
+        fetchQuestionsByPage(selectedCommunity);
+      }
+    };
+
+    window.addEventListener('questionUpdated', handleQuestionUpdated);
+    return () => window.removeEventListener('questionUpdated', handleQuestionUpdated);
+  }, [selectedCommunity]);
+
+  const fetchInitialData = async () => {
+    try {
+      const pagesData = await pagesApi.getAll();
+      setPages(pagesData);
+      await fetchAllQuestions();
+    } catch (error) {
+      toast.error("Failed to load data");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllQuestions = async () => {
+    setLoading(true);
+    try {
+      const pagesData = pages.length > 0 ? pages : await pagesApi.getAll();
+      const allQuestions = await Promise.all(
+        pagesData.map((page) => questionsApi.getByPage(page.name).catch(() => []))
+      );
+      setQuestions(allQuestions.flat());
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchQuestionsByPage = async (pageName: string) => {
+    setLoading(true);
+    try {
+      const data = await questionsApi.getByPage(pageName);
+      setQuestions(data);
+    } catch (error) {
+      toast.error("Failed to load questions");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuestionPosted = () => {
+    if (selectedCommunity === "All") {
+      fetchAllQuestions();
+    } else {
+      fetchQuestionsByPage(selectedCommunity);
+    }
+  };
+
+  const transformQuestion = (q: Question) => ({
+    id: q.id,
+    title: q.title,
+    description: q.description,
+    author: q.userName,
+    community: q.pageName,
+    upvotes: 0, // Backend doesn't have voting yet
+    replies: q.replyCount,
+    isHot: q.replyCount > 5,
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,16 +148,22 @@ const Index = () => {
                   </motion.div>
 
                   {/* Doubts grid */}
-                  <motion.div className="space-y-6" variants={staggerContainer}>
-                    {filteredDoubts.map((doubt, index) => (
-                      <motion.div key={doubt.id} variants={fadeInUp}>
-                        <DoubtCard {...doubt} index={index} />
+                  {loading ? (
+                    <div className="flex items-center justify-center py-20">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <>
+                      <motion.div className="space-y-6" variants={staggerContainer}>
+                        {questions.map((question, index) => (
+                          <motion.div key={question.id} variants={fadeInUp}>
+                            <DoubtCard {...transformQuestion(question)} index={index} />
+                          </motion.div>
+                        ))}
                       </motion.div>
-                    ))}
-                  </motion.div>
 
-                  {/* Empty state */}
-                  {filteredDoubts.length === 0 && (
+                      {/* Empty state */}
+                      {questions.length === 0 && (
                     <motion.div
                       variants={fadeInUp}
                       className="text-center py-20"
@@ -144,23 +173,25 @@ const Index = () => {
                           y: [0, -10, 0],
                           rotate: [0, 5, -5, 0],
                         }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                        }}
-                      >
-                        <p className="text-6xl mb-4">🤖</p>
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                          }}
+                        >
+                          <p className="text-6xl mb-4">🤖</p>
+                        </motion.div>
+                        <p className="text-xl text-muted-foreground">
+                          No doubts found in this community
+                        </p>
                       </motion.div>
-                      <p className="text-xl text-muted-foreground">
-                        No doubts found in this community
-                      </p>
-                    </motion.div>
+                      )}
+                    </>
                   )}
                 </motion.div>
               </main>
             </div>
 
-            <PostButton onClick={() => alert("Post modal coming soon!")} />
+            <PostButton onQuestionPosted={handleQuestionPosted} />
           </motion.div>
         )}
       </AnimatePresence>
