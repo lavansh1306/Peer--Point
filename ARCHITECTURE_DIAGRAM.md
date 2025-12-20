@@ -592,7 +592,7 @@
 ```
 Peer--Point/
 │
-├── 📂 frontend/ (Root directory)
+├── 📂 frontend/ (Frontend application root)
 │   │
 │   ├── 📂 src/
 │   │   ├── 📂 pages/
@@ -730,7 +730,8 @@ Peer--Point/
 
 **Frontend Request:**
 ```typescript
-// POST http://localhost:8080/api/questions
+// Development: POST http://localhost:8080/api/questions
+// Production:  POST https://api.yourdomain.com/api/questions
 {
   "title": "How to implement Binary Search Tree in Java?",
   "description": "I need help understanding BST implementation...",
@@ -763,7 +764,8 @@ Peer--Point/
 
 **Registration Request:**
 ```typescript
-// POST http://localhost:8080/api/auth/register
+// Development: POST http://localhost:8080/api/auth/register
+// Production:  POST https://api.yourdomain.com/api/auth/register
 {
   "name": "John Doe",
   "email": "john@example.com",
