@@ -139,10 +139,19 @@ Login → Credentials → Backend Validation → Generate JWT (24h expiry)
 ## 🚀 Quick Start
 
 ### Prerequisites
+Before you begin, ensure you have the following installed:
 - **Node.js** 18+ and npm
+  - Used for frontend development and build tooling
+  - Check version: `node --version`
 - **Java** 17+
+  - Required for Spring Boot backend
+  - Check version: `java --version`
 - **Maven** 3.8+
+  - Java dependency management and build tool
+  - Check version: `mvn --version`
 - **PostgreSQL** (for production) or H2 (auto-configured for dev)
+  - H2 database included for development (no setup needed)
+  - PostgreSQL recommended for production deployment
 
 ### 1. Clone the Repository
 
@@ -182,9 +191,16 @@ Open your browser and navigate to: **http://localhost:5173**
 
 ### Frontend Environment (`.env`)
 
+Create a `.env` file in the project root with the following configuration:
+
 ```env
 VITE_API_URL=http://localhost:8080/api
 ```
+
+**Configuration Options:**
+- `VITE_API_URL` - The base URL for the backend API server
+- Default value points to local development server
+- Update this URL when deploying to production
 
 ### Backend Configuration (`backend/src/main/resources/application.properties`)
 
@@ -208,6 +224,20 @@ jwt.expiration=86400000
 # CORS
 cors.allowed-origins=http://localhost:5173
 ```
+
+**Key Configuration Settings:**
+- **Server Port**: Default is `8080` - Backend API runs on this port
+- **H2 Database**: File-based in-memory database for development
+  - Console accessible at `http://localhost:8080/h2-console`
+  - Data persists in `./data/sparkdb` directory
+- **PostgreSQL**: Production database configuration (commented out by default)
+  - Uncomment and configure for production deployment
+  - Requires PostgreSQL server running on port `5432`
+- **JWT Settings**: 
+  - `jwt.secret` - Secret key for signing JWT tokens (change in production!)
+  - `jwt.expiration` - Token validity period in milliseconds (24 hours default)
+- **CORS**: Allowed origins for cross-origin requests
+  - Add your frontend URL when deploying to production
 
 ---
 
@@ -274,26 +304,63 @@ Peer--Point/
 
 ## 📚 API Documentation
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Authenticate user
+### Authentication Endpoints
+**User Registration & Login:**
+- **`POST /api/auth/register`** - Register new user
+  - Request body: `{ name, email, password }`
+  - Returns: JWT token and user details
+  - No authentication required
+- **`POST /api/auth/login`** - Authenticate user
+  - Request body: `{ email, password }`
+  - Returns: JWT token (valid for 24 hours)
+  - No authentication required
 
-### Pages (Categories)
-- `GET /api/pages` - List all categories
-- `GET /api/pages/name/{name}` - Get category by name
+### Pages (Categories) Endpoints
+**Subject Category Management:**
+- **`GET /api/pages`** - List all categories
+  - Returns: Array of all available subject categories
+  - Public endpoint (no auth required)
+- **`GET /api/pages/name/{name}`** - Get category by name
+  - Returns: Category details and metadata
+  - Public endpoint (no auth required)
 
-### Questions
-- `GET /api/questions/page/name/{name}` - Get questions by category
-- `GET /api/questions/{id}` - Get question details
-- `POST /api/questions` - Create question (Auth required)
-- `PUT /api/questions/{id}` - Update question (Owner/Admin)
-- `DELETE /api/questions/{id}` - Delete question (Owner/Admin)
+### Questions Endpoints
+**Question Management & Browsing:**
+- **`GET /api/questions/page/name/{name}`** - Get questions by category
+  - Returns: Paginated list of questions for a subject
+  - Query params: `page`, `size` for pagination
+  - Public endpoint (no auth required)
+- **`GET /api/questions/{id}`** - Get question details
+  - Returns: Full question with metadata
+  - Public endpoint (no auth required)
+- **`POST /api/questions`** - Create question
+  - Request body: `{ title, description, pageId }`
+  - Requires: JWT authentication
+  - Returns: Created question with ID
+- **`PUT /api/questions/{id}`** - Update question
+  - Request body: `{ title, description }`
+  - Requires: Owner or Admin role
+  - Returns: Updated question
+- **`DELETE /api/questions/{id}`** - Delete question
+  - Requires: Owner or Admin role
+  - Returns: Success confirmation
 
-### Replies
-- `GET /api/replies/question/{id}` - Get replies for question
-- `POST /api/replies/question/{id}` - Post reply (Auth required)
-- `PUT /api/replies/{id}` - Update reply (Owner/Admin)
-- `DELETE /api/replies/{id}` - Delete reply (Owner/Admin)
+### Replies Endpoints
+**Answer & Discussion Management:**
+- **`GET /api/replies/question/{id}`** - Get replies for question
+  - Returns: All replies/answers for a specific question
+  - Public endpoint (no auth required)
+- **`POST /api/replies/question/{id}`** - Post reply
+  - Request body: `{ content }`
+  - Requires: JWT authentication
+  - Returns: Created reply with ID
+- **`PUT /api/replies/{id}`** - Update reply
+  - Request body: `{ content }`
+  - Requires: Owner or Admin role
+  - Returns: Updated reply
+- **`DELETE /api/replies/{id}`** - Delete reply
+  - Requires: Owner or Admin role
+  - Returns: Success confirmation
 
 ---
 
@@ -301,11 +368,31 @@ Peer--Point/
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+**How to Contribute:**
+1. **Fork the repository**
+   - Click the 'Fork' button at the top right of this page
+   - Clone your fork locally
+2. **Create your feature branch**
+   - `git checkout -b feature/AmazingFeature`
+   - Use descriptive branch names (e.g., `feature/add-search`, `fix/login-bug`)
+3. **Commit your changes**
+   - `git commit -m 'Add some AmazingFeature'`
+   - Write clear, concise commit messages
+   - Follow existing code style and conventions
+4. **Push to the branch**
+   - `git push origin feature/AmazingFeature`
+   - Ensure all tests pass before pushing
+5. **Open a Pull Request**
+   - Provide a clear description of your changes
+   - Reference any related issues
+   - Wait for code review and feedback
+
+**Contribution Guidelines:**
+- Follow the existing code style and formatting
+- Add tests for new features when applicable
+- Update documentation for significant changes
+- Keep pull requests focused on a single feature or fix
+- Be respectful and constructive in discussions
 
 ---
 
@@ -317,7 +404,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🌟 Support
 
-If you find this project helpful, please consider giving it a ⭐ on GitHub!
+If you find this project helpful, please consider:
+- ⭐ **Star this repository** on GitHub to show your support
+- 🐛 **Report bugs** by opening an issue with detailed reproduction steps
+- 💡 **Request features** through GitHub issues
+- 📖 **Improve documentation** by submitting PRs
+- 🔗 **Share the project** with others who might find it useful
+- 💬 **Join discussions** and help answer questions from other users
 
 ---
 
